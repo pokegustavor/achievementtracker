@@ -1,0 +1,11 @@
+{
+    "HarmonyId": "pat.achievementtracker",
+    "DisplayName": "achievementtracker",
+    "Authors": [
+      "pat"
+    ],
+    "Description": "",
+    "Version": "1.0.0",
+    "RequiredMods": [],
+    "Settings": {}
+}
