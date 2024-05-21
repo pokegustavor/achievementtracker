@@ -25,11 +25,6 @@
   <ItemGroup>
     <EmbeddedResource Include="resources\**" />
   </ItemGroup>
-
-  <ItemGroup>
-    <None Remove="resources\achievementtrackerui_mac" />
-  </ItemGroup>
-  
   
   <ItemGroup>
     <PackageReference Include="HarmonyX" Version="2.10.2" />

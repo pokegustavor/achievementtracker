@@ -7,10 +7,12 @@ using Home.Messages.Incoming;
 using Home.Shared;
 using Server.Shared;
 using Server.Shared.Extensions;
+using Server.Shared.Info;
 using Services;
 using SML;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
@@ -90,7 +92,7 @@ public class AchievementTracker
 
         //foreach (var (k, v) in AchievementTracker.RoleToAchievements)
         //{
-        //    Console.WriteLine($"{k}\n\t{v.Select(ach => $"{ach.Earned}\t{ach.WinNumGamesType}\t{ach.Name}").Join(delimiter: "\n\t")}");
+        //    Console.WriteLine($"{k}\n\t{v.Select(ach => $"{ach.Earned}\t{ach.WinNumGamesType}\t{ach.Name}\n\t\t{ach.Description}").Join(delimiter: "\n\t")}");
         //}
     }
 
@@ -190,7 +192,9 @@ public class AchievementTrackerUIController : MonoBehaviour
     {
         int berylium = 0;
         var gameFont = ApplicationController.ApplicationContext.FontControllerSource.fonts[berylium].tmp_FontAsset;
-        var gameFontMaterial = ApplicationController.ApplicationContext.FontControllerSource.fonts[berylium].standardFontMaterial;
+        // I have no idea how else to get a reference to this material
+        var gameFontMaterial = Resources.LoadAll<Material>("").Single(m => m.name == "Game SDF - Black Outline Shadowed Thick");
+
 
         AchievementTitle1 = transform.Find("AchievementTitle1").GetComponent<TMP_Text>();
         AchievementTitle1.font = gameFont;
@@ -313,6 +317,31 @@ public class RoleCardElementsPanelPatch
         for (int i = 0; i < achievements.Count; i++)
         {
             controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
+        }
+
+        StateProperty<PlayerIdentityData> myIdentity = Service.Game.Sim.simulation.myIdentity;
+        myIdentity.OnChanged = (Action<PlayerIdentityData>)Delegate.Combine(myIdentity.OnChanged, new Action<PlayerIdentityData>(HandleOnMyIdentityChanged));
+    }
+
+    [HarmonyPatch(nameof(RoleCardElementsPanel.OnDestroy))]
+    [HarmonyPostfix]
+    public static void OnDestroyPostfix()
+    {
+        StateProperty<PlayerIdentityData> myIdentity = Service.Game.Sim.simulation.myIdentity;
+        myIdentity.OnChanged = (Action<PlayerIdentityData>)Delegate.Remove(myIdentity.OnChanged, new Action<PlayerIdentityData>(HandleOnMyIdentityChanged));
+    }
+
+    public static void HandleOnMyIdentityChanged(PlayerIdentityData data)
+    {
+        if (Service.Game.Sim.simulation != null)
+        {
+            var controller = AchievementTracker.achievementTrackerGO.GetComponent<AchievementTrackerUIController>();
+            var currentRole = Pepper.GetMyCurrentIdentity().role.ToString().ToLower();
+            List<AchievementInfo> achievements = AchievementTracker.RoleToAchievements[currentRole].Filter(info => !info.WinNumGamesType);
+            for (int i = 0; i < achievements.Count; i++)
+            {
+                controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
+            }
         }
     }
 }
