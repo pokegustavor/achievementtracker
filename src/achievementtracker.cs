@@ -37,6 +37,7 @@ public class AchievementTracker
     // role name in lowercase -> achievement[]
     public static Dictionary<string, List<AchievementInfo>> RoleToAchievements = new();
     public static GameObject achievementTrackerGO;
+    public static bool isIncompatibleLobby => ModStates.IsEnabled("curtis.tuba.better.tos2") && BetterTOS2.BTOSInfo.IS_MODDED;
 
     public static void Start()
     {
@@ -156,7 +157,7 @@ public class HomeScenePatch
 
     [HarmonyPatch(nameof(HomeSceneController.Start))]
     [HarmonyPostfix]
-    public static void StartPostfix(HomeSceneController __instance) 
+    public static void StartPostfix(HomeSceneController __instance)
     {
         homeSceneController = __instance;
     }
@@ -197,30 +198,26 @@ public class AchievementTrackerUIController : MonoBehaviour
 
 
         AchievementTitle1 = transform.Find("AchievementTitle1").GetComponent<TMP_Text>();
-        AchievementTitle1.font = gameFont;
-        AchievementTitle1.fontSharedMaterial = gameFontMaterial;
-        AchievementTitle2 = transform.Find("AchievementTitle2").GetComponent<TMP_Text>();
-        AchievementTitle2.font = gameFont;
-        AchievementTitle2.fontSharedMaterial = gameFontMaterial;
-        AchievementTitle3 = transform.Find("AchievementTitle3").GetComponent<TMP_Text>();
-        AchievementTitle3.font = gameFont;
-        AchievementTitle3.fontSharedMaterial = gameFontMaterial;
-        AchievementTitle4 = transform.Find("AchievementTitle4").GetComponent<TMP_Text>();
-        AchievementTitle4.font = gameFont;
-        AchievementTitle4.fontSharedMaterial = gameFontMaterial;
-
         AchievementText1 = transform.Find("AchievementText1").GetComponent<TMP_Text>();
-        AchievementText1.font = gameFont;
-        AchievementText1.fontSharedMaterial = gameFontMaterial;
+        AchievementTitle2 = transform.Find("AchievementTitle2").GetComponent<TMP_Text>();
         AchievementText2 = transform.Find("AchievementText2").GetComponent<TMP_Text>();
-        AchievementText2.font = gameFont;
-        AchievementText2.fontSharedMaterial = gameFontMaterial;
+        AchievementTitle3 = transform.Find("AchievementTitle3").GetComponent<TMP_Text>();
         AchievementText3 = transform.Find("AchievementText3").GetComponent<TMP_Text>();
-        AchievementText3.font = gameFont;
-        AchievementText3.fontSharedMaterial = gameFontMaterial;
+        AchievementTitle4 = transform.Find("AchievementTitle4").GetComponent<TMP_Text>();
         AchievementText4 = transform.Find("AchievementText4").GetComponent<TMP_Text>();
-        AchievementText4.font = gameFont;
-        AchievementText4.fontSharedMaterial = gameFontMaterial;
+
+        quickSetAchievementMetadata(ref AchievementTitle1, ref AchievementText1, gameFont, gameFontMaterial);
+        quickSetAchievementMetadata(ref AchievementTitle2, ref AchievementText2, gameFont, gameFontMaterial);
+        quickSetAchievementMetadata(ref AchievementTitle3, ref AchievementText3, gameFont, gameFontMaterial);
+        quickSetAchievementMetadata(ref AchievementTitle4, ref AchievementText4, gameFont, gameFontMaterial);
+    }
+
+    internal void quickSetAchievementMetadata(ref TMP_Text title, ref TMP_Text text, TMP_FontAsset font, Material material)
+    {
+        title.font = font;
+        text.font = font;
+        title.fontSharedMaterial = material;
+        text.fontSharedMaterial = material;
     }
 
     public void SetAchievementText(string title, string desc, int index, bool earned)
@@ -236,44 +233,34 @@ public class AchievementTrackerUIController : MonoBehaviour
         switch (index)
         {
             case 0:
-                if (AchievementText1 is null || AchievementTitle1 is null) CacheObjects();
-                AchievementTitle1.SetText(title);
-                AchievementTitle1.gameObject.SetActive(true);
-                AchievementTitle1.color = color;
-                AchievementText1.SetText(desc);
-                AchievementText1.gameObject.SetActive(true);
-                AchievementText1.color = color;
+                quickSetAchievementData(ref AchievementTitle1, ref AchievementText1, title, desc, color);
                 break;
             case 1:
-                if (AchievementText2 is null || AchievementTitle2 is null) CacheObjects();
-                AchievementTitle2.SetText(title);
-                AchievementTitle2.gameObject.SetActive(true);
-                AchievementTitle2.color = color;
-                AchievementText2.SetText(desc);
-                AchievementText2.gameObject.SetActive(true);
-                AchievementText2.color = color;
+                quickSetAchievementData(ref AchievementTitle2, ref AchievementText2, title, desc, color);
                 break;
             case 2:
-                if (AchievementText3 is null || AchievementTitle3 is null) CacheObjects();
-                AchievementTitle3.SetText(title);
-                AchievementTitle3.gameObject.SetActive(true);
-                AchievementTitle3.color = color;
-                AchievementText3.SetText(desc);
-                AchievementText3.gameObject.SetActive(true);
-                AchievementText3.color = color;
+                quickSetAchievementData(ref AchievementTitle3, ref AchievementText3, title, desc, color);
                 break;
             case 3:
-                if (AchievementText4 is null || AchievementTitle4 is null) CacheObjects();
-                AchievementTitle4.SetText(title);
-                AchievementTitle4.gameObject.SetActive(ModSettings.GetBool("See Hidden Achievements"));
-                AchievementTitle4.color = color;
-                AchievementText4.SetText(desc);
-                AchievementText4.gameObject.SetActive(ModSettings.GetBool("See Hidden Achievements"));
-                AchievementText4.color = color;
+                bool should_become_active = ModSettings.GetBool("See Hidden Achievements");
+                quickSetAchievementData(ref AchievementTitle4, ref AchievementText4, title, desc, color, should_become_active);
                 break;
             default:
                 throw new Exception("Unexpected value");
         }
+    }
+
+    internal void quickSetAchievementData(ref TMP_Text title, ref TMP_Text text, string str_title, string desc, Color color, bool should_be_active = true)
+    {
+        if (title is null || text is null) CacheObjects();
+
+        title.SetText(str_title);
+        title.gameObject.SetActive(should_be_active);
+        title.color = color;
+
+        text.SetText(desc);
+        text.gameObject.SetActive(should_be_active);
+        text.color = color;
     }
 
     public void ShowAchievementText(int index, bool show)
@@ -300,6 +287,19 @@ public class AchievementTrackerUIController : MonoBehaviour
                 throw new Exception("Unexpected value");
         }
     }
+
+    internal void DisableAllAcheivement()
+    {
+
+        AchievementText1.gameObject.SetActive(false);
+        AchievementTitle1.gameObject.SetActive(false);
+        AchievementText2.gameObject.SetActive(false);
+        AchievementTitle2.gameObject.SetActive(false);
+        AchievementText3.gameObject.SetActive(false);
+        AchievementTitle3.gameObject.SetActive(false);
+        AchievementText4.gameObject.SetActive(false);
+        AchievementTitle4.gameObject.SetActive(false);
+    }
 }
 
 [HarmonyPatch(typeof(RoleCardElementsPanel))]
@@ -309,6 +309,9 @@ public class RoleCardElementsPanelPatch
     [HarmonyPostfix]
     public static void StartPostfix(RoleCardElementsPanel __instance)
     {
+        if (AchievementTracker.isIncompatibleLobby)
+            return;
+        
         var go = AchievementTracker.SpawnUI(__instance.gameObject);
         var controller = go.GetComponent<AchievementTrackerUIController>();
 
@@ -327,12 +330,19 @@ public class RoleCardElementsPanelPatch
     [HarmonyPostfix]
     public static void OnDestroyPostfix()
     {
+        // won't have created action so no need to remove it
+        if (AchievementTracker.isIncompatibleLobby)
+            return;
+
         StateProperty<PlayerIdentityData> myIdentity = Service.Game.Sim.simulation.myIdentity;
         myIdentity.OnChanged = (Action<PlayerIdentityData>)Delegate.Remove(myIdentity.OnChanged, new Action<PlayerIdentityData>(HandleOnMyIdentityChanged));
     }
 
     public static void HandleOnMyIdentityChanged(PlayerIdentityData data)
     {
+        if (AchievementTracker.isIncompatibleLobby)
+            return;
+
         if (Service.Game.Sim.simulation != null)
         {
             var controller = AchievementTracker.achievementTrackerGO.GetComponent<AchievementTrackerUIController>();

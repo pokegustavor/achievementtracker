@@ -40,6 +40,10 @@
       <HintPath>.\libs\Assembly-CSharp.dll</HintPath>
     </Reference>
 
+    <Reference Include="BetterTOS2">
+      <HintPath>libs\BetterTOS2.dll</HintPath>
+    </Reference>
+
     <Reference Include="Unity.TextMeshPro">
       <HintPath>libs\Unity.TextMeshPro.dll</HintPath>
     </Reference>

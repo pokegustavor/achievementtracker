@@ -4,7 +4,7 @@
     "Authors": [
       "pat"
     ],
-    "Description": "",
+    "Description": "Shows achievements while in-game. Toggle hidden achievement setting to see 4th achievement.",
     "Version": "1.0.0",
     "RequiredMods": [],
     "Settings": {}
