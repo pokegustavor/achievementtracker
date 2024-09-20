@@ -77,6 +77,7 @@ public class AchievementTracker
         return achievementTrackerUIGO;
     }
 
+    // Info about all the achievements the client has earned sent when they log in
     public static void OnEarnedAchievements(IncomingHomeMessage message)
     {
         EarnedAchievementsMessage earnedAchievementsMessage = (EarnedAchievementsMessage)message;
@@ -97,9 +98,41 @@ public class AchievementTracker
         //}
     }
 
-    public static void OnEarnNewAchievement(EarnedAchievementMessage message)
+    // Info about any new acheivements the client earns during a game
+    public static void OnEarnNewAchievement(IncomingHomeMessage message)
     {
-        return;
+        EarnedAchievementMessage m = (EarnedAchievementMessage)message;
+        foreach (var achievementInfoList in RoleToAchievements.Values)
+        {
+            foreach (var achievementInfo in achievementInfoList)
+            {
+                if (achievementInfo.Achievement.id == m.Data.AchievementID)
+                    achievementInfo.Earned = true;
+            }
+        }
+
+        // Update -- strikethrough achievement
+        if (Service.Game.Sim.simulation != null)
+        {
+            var role = Pepper.GetMyCurrentIdentity().role.ToString().ToLower();
+            var controller = achievementTrackerGO.GetComponent<AchievementTrackerUIController>();
+
+            if (role == controller.trackedRole)
+            {
+                List<AchievementInfo> achievements = RoleToAchievements[role].Filter(info => !info.WinNumGamesType);
+                for (int i = 0; i < achievements.Count; i++)
+                {
+                    if (achievements[i].Achievement.id == m.Data.AchievementID && ShouldShowAchievementChange(m.Data.AchievementID))
+                        controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
+                }
+            }
+        }
+    }
+
+    // Does not update (strikethrough change) if achievement should not be shown during gameplay
+    internal static bool ShouldShowAchievementChange(int achievementId)
+    {
+        return !AchievementData.achievementsToHide.Contains((AchievementData.Achievements)achievementId);
     }
 }
 
