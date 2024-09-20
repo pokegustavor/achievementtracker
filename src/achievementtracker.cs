@@ -13,6 +13,7 @@ using SML;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
@@ -37,7 +38,17 @@ public class AchievementTracker
     // role name in lowercase -> achievement[]
     public static Dictionary<string, List<AchievementInfo>> RoleToAchievements = new();
     public static GameObject achievementTrackerGO;
-    public static bool isIncompatibleLobby => ModStates.IsEnabled("curtis.tuba.better.tos2") && BetterTOS2.BTOSInfo.IS_MODDED;
+    public static bool isIncompatibleLobby
+    {
+        get 
+        {
+            Lazy<bool> isModded = new Lazy<bool>(() =>
+            {
+                return BetterTOS2.BTOSInfo.IS_MODDED;
+            });
+            return ModStates.IsEnabled("curtis.tuba.better.tos2") && isModded.Value;
+        }
+    }
 
     public static void Start()
     {
