@@ -38,6 +38,7 @@ public class AchievementTracker
     // role name in lowercase -> achievement[]
     public static Dictionary<string, List<AchievementInfo>> RoleToAchievements = new();
     public static GameObject achievementTrackerGO;
+    public static Vector3 position = new Vector3(1.225f, 0.25f, 0f); // defaults to overlapping on role stuff
     public static bool isIncompatibleLobby
     {
         get 
@@ -75,14 +76,44 @@ public class AchievementTracker
         }
     }
 
+    public ModSettings.CheckboxSetting GUIPositionOverlap
+    {
+        get
+        {
+            return new()
+            {
+                Name = "Allow GUI Overlap",
+                Description = "Determines the position of the achievement text (ontop of special role icons or not)",
+                DefaultValue = true,
+                Available = true,
+                AvailableInGame = true,
+                OnChanged = (val) =>
+                {
+                    if (val)
+                    { // true == we are allowing overlap
+                        position = new Vector3(1.225f, 0.25f, 0.0f);
+                        if (achievementTrackerGO != null)
+                            achievementTrackerGO.transform.SetPositionAndRotation(position, new Quaternion());
+                    }
+                    else
+                    {
+                        position = new Vector3(1.025f, 0.25f, 0.0f);
+                        if (achievementTrackerGO != null)
+                            achievementTrackerGO.transform.SetPositionAndRotation(position, new Quaternion());
+                    }
+                }
+            };
+        }
+    }
+
     public static GameObject SpawnUI(GameObject parent)
     {
         GameObject achievementTrackerUIGO = UnityEngine.Object.Instantiate(FromAssetBundle.LoadGameObject("achievementtracker.resources.achievementtrackerui", "AchievementTrackerUIGO"));
         achievementTrackerGO = achievementTrackerUIGO;
         achievementTrackerUIGO.transform.SetParent(parent.transform, false);
         achievementTrackerUIGO.transform.localPosition = new Vector3(0f, 0f, 0f);
-        achievementTrackerUIGO.transform.SetPositionAndRotation(new Vector3(1.2f, 0.25f, 0f), new Quaternion());
-        achievementTrackerUIGO.transform.localScale = new Vector3(3f, 3f, 3f);
+        achievementTrackerUIGO.transform.SetPositionAndRotation(position, new Quaternion());
+        achievementTrackerUIGO.transform.localScale = new Vector3(3.5f, 3.5f, 3.5f);
         achievementTrackerUIGO.transform.SetAsLastSibling();
         achievementTrackerUIGO.AddComponent<AchievementTrackerUIController>().Init();
         return achievementTrackerUIGO;
@@ -357,7 +388,8 @@ public class RoleCardElementsPanelPatch
         if (AchievementTracker.isIncompatibleLobby)
             return;
 
-        var go = AchievementTracker.SpawnUI(__instance.gameObject);
+        var rolecardpanel = __instance.GetComponentInChildren<RoleCardPanel>(includeInactive: true);
+        var go = AchievementTracker.SpawnUI(rolecardpanel.gameObject);
         var controller = go.GetComponent<AchievementTrackerUIController>();
 
         var currentRole = Pepper.GetMyCurrentIdentity().role.ToString().ToLower();
