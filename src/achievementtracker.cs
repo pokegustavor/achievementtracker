@@ -38,7 +38,7 @@ public class AchievementTracker
     // role name in lowercase -> achievement[]
     public static Dictionary<string, List<AchievementInfo>> RoleToAchievements = new();
     public static GameObject achievementTrackerGO;
-    public static Vector3 localPosition = new Vector3(-542f, -600f, -2205f); // defaults to overlapping on EXTRA!!! role stuff
+    public static Vector3 localPosition = new Vector3(-542f, -600f, -2205f); // defaults to overlapping on EXTRA!!! role stuff DOES NOT OVERLAP ROLE CARD
     public static bool isIncompatibleLobby
     {
         get 

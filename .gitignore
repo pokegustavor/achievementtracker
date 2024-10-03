@@ -5,3 +5,5 @@ bin/
 
 SteamLibrary.targets
 .vs/
+
+libs/BetterTOS2.dll
