@@ -4,8 +4,8 @@
     "Authors": [
       "pat"
     ],
-    "Description": "Shows achievements while in-game. Toggle hidden achievement setting to see 4th achievement.",
-    "Version": "1.0.2",
+    "Description": "Shows achievements while in-game. Toggle hidden achievement setting to see 4th achievement, and disable overlap to see role specific attributes (bers, sk, etc.)",
+    "Version": "1.0.3",
     "RequiredMods": [],
     "Settings": {}
 }
