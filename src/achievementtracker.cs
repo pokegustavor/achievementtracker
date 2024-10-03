@@ -38,7 +38,7 @@ public class AchievementTracker
     // role name in lowercase -> achievement[]
     public static Dictionary<string, List<AchievementInfo>> RoleToAchievements = new();
     public static GameObject achievementTrackerGO;
-    public static Vector3 position = new Vector3(1.225f, 0.25f, 0f); // defaults to overlapping on role stuff
+    public static Vector3 localPosition = new Vector3(-542f, -600f, -2205f); // defaults to overlapping on EXTRA!!! role stuff
     public static bool isIncompatibleLobby
     {
         get 
@@ -91,15 +91,15 @@ public class AchievementTracker
                 {
                     if (val)
                     { // true == we are allowing overlap
-                        position = new Vector3(1.225f, 0.25f, 0.0f);
+                        localPosition = new Vector3(-702f, -600f, -2205f);
                         if (achievementTrackerGO != null)
-                            achievementTrackerGO.transform.SetPositionAndRotation(position, new Quaternion());
+                            achievementTrackerGO.transform.SetLocalPositionAndRotation(localPosition, Quaternion.identity);
                     }
                     else
                     {
-                        position = new Vector3(1.025f, 0.25f, 0.0f);
+                        localPosition = new Vector3(-542f, -600f, -2205f);
                         if (achievementTrackerGO != null)
-                            achievementTrackerGO.transform.SetPositionAndRotation(position, new Quaternion());
+                            achievementTrackerGO.transform.SetLocalPositionAndRotation(localPosition, Quaternion.identity);
                     }
                 }
             };
@@ -111,8 +111,7 @@ public class AchievementTracker
         GameObject achievementTrackerUIGO = UnityEngine.Object.Instantiate(FromAssetBundle.LoadGameObject("achievementtracker.resources.achievementtrackerui", "AchievementTrackerUIGO"));
         achievementTrackerGO = achievementTrackerUIGO;
         achievementTrackerUIGO.transform.SetParent(parent.transform, false);
-        achievementTrackerUIGO.transform.localPosition = new Vector3(0f, 0f, 0f);
-        achievementTrackerUIGO.transform.SetPositionAndRotation(position, new Quaternion());
+        achievementTrackerUIGO.transform.SetLocalPositionAndRotation(localPosition, Quaternion.identity);
         achievementTrackerUIGO.transform.localScale = new Vector3(3.5f, 3.5f, 3.5f);
         achievementTrackerUIGO.transform.SetAsLastSibling();
         achievementTrackerUIGO.AddComponent<AchievementTrackerUIController>().Init();
