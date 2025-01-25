@@ -26,7 +26,7 @@ public class AchievementInfo
     public string Name { get; set; }
     public string Description { get; set; }
     public Achievement Achievement { get; set; }
-    public bool WinNumGamesType => Regex.Match(Description, @"Win.+games?").Success;
+    //public bool WinNumGamesType => Regex.Match(Description, @"Win.+games?").Success;
     public bool Earned { get; set; }
 }
 
@@ -135,7 +135,7 @@ public class AchievementTracker
 
         //foreach (var (k, v) in AchievementTracker.RoleToAchievements)
         //{
-        //    Console.WriteLine($"{k}\n\t{v.Select(ach => $"{ach.Earned}\t{ach.WinNumGamesType}\t{ach.Name}\n\t\t{ach.Description}").Join(delimiter: "\n\t")}");
+        //    Console.WriteLine($"{k}\n\t{v.Select(ach => $"{ach.Earned}\t{ach.Name}\n\t\t{ach.Description}").Join(delimiter: "\n\t")}");
         //}
     }
 
@@ -160,7 +160,7 @@ public class AchievementTracker
 
             if (role == controller.trackedRole)
             {
-                List<AchievementInfo> achievements = RoleToAchievements[role].Filter(info => !info.WinNumGamesType);
+                List<AchievementInfo> achievements = RoleToAchievements[role].Skip<AchievementInfo>(4).ToList();
                 for (int i = 0; i < achievements.Count; i++)
                 {
                     if (achievements[i].Achievement.id == m.Data.AchievementID && ShouldShowAchievementChange(m.Data.AchievementID))
@@ -392,7 +392,8 @@ public class RoleCardElementsPanelPatch
         var controller = go.GetComponent<AchievementTrackerUIController>();
 
         var currentRole = Pepper.GetMyCurrentIdentity().role.ToString().ToLower();
-        List<AchievementInfo> achievements = AchievementTracker.RoleToAchievements[currentRole].Filter(info => !info.WinNumGamesType);
+        // dumb hack but win achievements are always the first 4 i think , and it won't skip pirate hidden achievement , and it will work in other languages (hopefully)
+        List<AchievementInfo> achievements = AchievementTracker.RoleToAchievements[currentRole].Skip<AchievementInfo>(4).ToList();
         for (int i = 0; i < achievements.Count; i++)
         {
             controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
@@ -431,7 +432,7 @@ public class RoleCardElementsPanelPatch
                 controller.ShowAchievementText(i, false);
             }
 
-            List<AchievementInfo> achievements = AchievementTracker.RoleToAchievements[currentRole].Filter(info => !info.WinNumGamesType);
+            List<AchievementInfo> achievements = AchievementTracker.RoleToAchievements[currentRole].Skip<AchievementInfo>(4).ToList();
             for (int i = 0; i < achievements.Count; i++)
             {
                 controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
