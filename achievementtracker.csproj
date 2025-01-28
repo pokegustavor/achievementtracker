@@ -19,9 +19,6 @@
 	  <SalemModLoaderLink>https://github.com/Curtbot9000/SalemModLoader/releases/latest/download/SalemModLoader.dll</SalemModLoaderLink>
   </PropertyGroup>
 
-  <!-- Steam Library Path -->
-  <Import Project="$(MSBuildThisFileDirectory)\SteamLibrary.targets" />
-
   <ItemGroup>
     <EmbeddedResource Include="resources\**" />
   </ItemGroup>
@@ -41,7 +38,7 @@
     </Reference>
 
     <Reference Include="BetterTOS2">
-      <HintPath>libs\BetterTOS2.dll</HintPath>
+      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Town of Salem 2\SalemModLoader\Mods\BetterTOS2.dll</HintPath>
     </Reference>
 
     <Reference Include="Unity.TextMeshPro">
@@ -89,5 +86,8 @@
   </Target>
   <Target Name="Copy" AfterTargets="Build" Condition="'$(SteamLibraryPath)' != ''">
 		<Copy SourceFiles="$(TargetPath)" DestinationFolder="$(SteamLibraryPath)/steamapps/common/Town of Salem 2/SalemModLoader/Mods"></Copy>
+  </Target>
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="SET PLUGIN_DIR=&quot;C:\Program Files (x86)\Steam\steamapps\common\Town of Salem 2\SalemModLoader\Mods\&quot;&#xA;&#xA;IF EXIST %25PLUGIN_DIR%25 (&#xA;    ECHO Copying DLLs to Plugins directory...&#xA;    XCOPY /Y /F &quot;$(TargetPath)&quot; %25PLUGIN_DIR%25&#xA;)" />
   </Target>
 </Project>

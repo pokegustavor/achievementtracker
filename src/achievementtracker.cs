@@ -41,7 +41,7 @@ public class AchievementTracker
     public static Vector3 localPosition = new Vector3(-542f, -600f, -2205f); // defaults to overlapping on EXTRA!!! role stuff DOES NOT OVERLAP ROLE CARD
     public static bool isIncompatibleLobby
     {
-        get 
+        get
         {
             Lazy<bool> isModded = new Lazy<bool>(() =>
             {
@@ -155,16 +155,19 @@ public class AchievementTracker
         // Update -- strikethrough achievement
         if (Service.Game.Sim.simulation != null)
         {
-            var role = Pepper.GetMyCurrentIdentity().role.ToString().ToLower();
+            string role = Pepper.GetMyCurrentIdentity().role.ToString().ToLower();
             var controller = achievementTrackerGO.GetComponent<AchievementTrackerUIController>();
 
             if (role == controller.trackedRole)
             {
-                List<AchievementInfo> achievements = RoleToAchievements[role].Skip<AchievementInfo>(4).ToList();
+                List<AchievementInfo> achievements = RoleToAchievements[role].ToList();
                 for (int i = 0; i < achievements.Count; i++)
                 {
                     if (achievements[i].Achievement.id == m.Data.AchievementID && ShouldShowAchievementChange(m.Data.AchievementID))
+                    {
                         controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
+                        break;
+                    }
                 }
             }
         }
@@ -187,7 +190,7 @@ public class AchievementServicePatch
         foreach (var achievement in __instance.achievementBook_.Achievements)
         {
             // seems that RoleCard_{Role} is a way to identify which role an achievement belongs to
-            var role = achievement.roleImage.name.ToLower();
+            string role = achievement.roleImage.name.ToLower();
             // but there is also stuff like general_win and general_time
             if (role.Contains("rolecard_"))
                 role = role.Substring("rolecard_".Length);
@@ -221,6 +224,7 @@ public class NetworkServicePatch
     public static void StartPostfix()
     {
         Service.Home.NetworkService.RegisterCallback(Home.IncomingMessageType.AlreadyEarnedAchievements, AchievementTracker.OnEarnedAchievements);
+        Service.Home.NetworkService.RegisterCallback(Home.IncomingMessageType.EarnedAchievement, AchievementTracker.OnEarnNewAchievement);
     }
 }
 
@@ -391,12 +395,33 @@ public class RoleCardElementsPanelPatch
         var go = AchievementTracker.SpawnUI(rolecardpanel.gameObject);
         var controller = go.GetComponent<AchievementTrackerUIController>();
 
-        var currentRole = Pepper.GetMyCurrentIdentity().role.ToString().ToLower();
+        string currentRole = Pepper.GetMyCurrentIdentity().role.ToString().ToLower();
         // dumb hack but win achievements are always the first 4 i think , and it won't skip pirate hidden achievement , and it will work in other languages (hopefully)
         List<AchievementInfo> achievements = AchievementTracker.RoleToAchievements[currentRole].Skip<AchievementInfo>(4).ToList();
+        var completed = true;
         for (int i = 0; i < achievements.Count; i++)
         {
             controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
+            if (!achievements[i].Earned) completed = false;
+        }
+        // if all role related achivement were completed, display the victory achivements missing
+        if (completed)
+        {
+            achievements = AchievementTracker.RoleToAchievements[currentRole].ToList();
+            for (int i = 0; i < 4; i++)
+            {
+                controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
+                if (!achievements[i].Earned) completed = false;
+            }
+        }
+        // if all roles achievements and all win achievement were completed, display all achievements completed message
+        if (completed)
+        {
+            controller.SetAchievementText("Completed", "All role achievements completed", 0, false);
+            for (int i = 1; i < 4; i++)
+            {
+                controller.ShowAchievementText(i, false);
+            }
         }
         controller.trackedRole = currentRole;
 
@@ -433,10 +458,29 @@ public class RoleCardElementsPanelPatch
             }
 
             List<AchievementInfo> achievements = AchievementTracker.RoleToAchievements[currentRole].Skip<AchievementInfo>(4).ToList();
+            var completed = true;
             for (int i = 0; i < achievements.Count; i++)
             {
                 controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
                 controller.ShowAchievementText(i, true);
+                if (!achievements[i].Earned) completed = false;
+            }
+            if (completed)
+            {
+                achievements = AchievementTracker.RoleToAchievements[currentRole].ToList();
+                for (int i = 0; i < 4; i++)
+                {
+                    controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
+                    if (!achievements[i].Earned) completed = false;
+                }
+            }
+            if (completed)
+            {
+                controller.SetAchievementText("Completed", "All role achievements completed", 0, false);
+                for (int i = 1; i < 4; i++)
+                {
+                    controller.ShowAchievementText(i, false);
+                }
             }
 
             controller.trackedRole = currentRole;
