@@ -161,12 +161,26 @@ public class AchievementTracker
             if (role == controller.trackedRole)
             {
                 List<AchievementInfo> achievements = RoleToAchievements[role].ToList();
-                for (int i = 0; i < achievements.Count; i++)
+                bool found = false;
+                for (int i = 0; i < 4; i++)
                 {
                     if (achievements[i].Achievement.id == m.Data.AchievementID && ShouldShowAchievementChange(m.Data.AchievementID))
                     {
                         controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
+                        found = true;
                         break;
+                    }
+                }
+                if (!found) 
+                {
+                    achievements = AchievementTracker.RoleToAchievements[role].Skip<AchievementInfo>(4).ToList();
+                    for (int i = 0; i < achievements.Count; i++)
+                    {
+                        if (achievements[i].Achievement.id == m.Data.AchievementID && ShouldShowAchievementChange(m.Data.AchievementID))
+                        {
+                            controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
+                            break;
+                        }
                     }
                 }
             }
