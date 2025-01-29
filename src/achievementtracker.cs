@@ -462,7 +462,7 @@ public class RoleCardElementsPanelPatch
 
         var controller = AchievementTracker.achievementTrackerGO.GetComponent<AchievementTrackerUIController>();
         var currentRole = data.role.ToString().ToLower();
-        if (Service.Game.Sim.simulation != null && currentRole != controller.trackedRole)
+        if (Service.Game.Sim.simulation != null && currentRole != controller.trackedRole && !IsHorseman(currentRole))
         {
             // Stop showing all tracked achievements incase there are no achievements for the new role
             const int MAX_ACHIEVEMENTS_PER_ROLE = 4;
@@ -499,5 +499,10 @@ public class RoleCardElementsPanelPatch
 
             controller.trackedRole = currentRole;
         }
+    }
+
+    public static bool IsHorseman(string role) 
+    {
+        return role == "war" || role == "famine" || role == "death" || role == "pestilence";
     }
 }
