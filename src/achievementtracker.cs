@@ -194,12 +194,12 @@ public class AchievementTracker
         }
 
         // Update -- strikethrough achievement
-        if (Service.Game.Sim.simulation != null)
+        if (Service.Game.Sim.simulation != null && achievementTrackerGO != null)
         {
             string role = Pepper.GetMyCurrentIdentity().role.ToString().ToLower();
             var controller = achievementTrackerGO.GetComponent<AchievementTrackerUIController>();
 
-            if (role == controller.trackedRole)
+            if (controller != null && role == controller.trackedRole)
             {
                 List<AchievementInfo> achievements = RoleToAchievements[role].Skip(4).ToList();
                 for (int i = 0; i < achievements.Count; i++)
@@ -619,8 +619,7 @@ public class RoleCardElementsPanelPatch
             }
             if (completed)
             {
-                controller.SetAchievementText("Completed", "All role achievements completed", 3, false);
-                controller.ShowAchievementText(3, true);
+                controller.SetAchievementText("Completed", "All role achievements completed", 3, false, true);
                 for (int i = 0; i < 3; i++)
                 {
                     controller.ShowAchievementText(i, false);
@@ -636,7 +635,7 @@ public class RoleCardElementsPanelPatch
             RoleCardPanel rolecardpanel = go.GetComponentInParent<RoleCardPanel>();
             if (powerData.powerLevelMax > 0 || powerData.powerLevelMax == -1)
             {
-                Console.WriteLine("(TESTA)List size: " + rolecardpanel.powerLevelMap.Count);
+
                 foreach (RoleCardPanel.PowerLevelElementMapObject powerLevelElementMapObject2 in rolecardpanel.powerLevelMap)
                 {
                     if (powerLevelElementMapObject2.role == data.role)
