@@ -57,6 +57,14 @@
       <HintPath>.\libs\SalemModLoader.dll</HintPath>
     </Reference>
 
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Town of Salem 2\TownOfSalem2_Data\Managed\UnityEngine.InputLegacyModule.dll</HintPath>
+    </Reference>
+
+    <Reference Include="UnityEngine.InputModule">
+      <HintPath>..\..\..\..\..\Program Files (x86)\Steam\steamapps\common\Town of Salem 2\TownOfSalem2_Data\Managed\UnityEngine.InputModule.dll</HintPath>
+    </Reference>
+
     <Reference Include="UnityEngine.UI">
       <HintPath>libs\UnityEngine.UI.dll</HintPath>
     </Reference>

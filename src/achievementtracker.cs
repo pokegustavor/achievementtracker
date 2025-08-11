@@ -14,9 +14,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Windows;
+using static Server.Shared.AchievementData;
+using static Server.Shared.State.HostOptions;
 
 namespace achievementtracker;
 
@@ -124,7 +128,7 @@ public class AchievementTracker
     public static GameObject SpawnUI(GameObject parent, bool popup = false)
     {
         GameObject achievementTrackerUIGO = UnityEngine.Object.Instantiate(FromAssetBundle.LoadGameObject("achievementtracker.resources.achievementtrackerui", "AchievementTrackerUIGO"));
-        if(!popup)achievementTrackerGO = achievementTrackerUIGO;
+        if (!popup) achievementTrackerGO = achievementTrackerUIGO;
         achievementTrackerUIGO.transform.SetParent(parent.transform, false);
         achievementTrackerUIGO.transform.SetLocalPositionAndRotation(localPosition, Quaternion.identity);
         achievementTrackerUIGO.transform.localScale = new Vector3(3.5f, 3.5f, 3.5f);
@@ -154,16 +158,38 @@ public class AchievementTracker
         //}
     }
 
+
+    public static void TESTA()
+    {
+        List<byte> te = new List<byte>
+        {
+            0
+        };
+        te.AddRange(Encoding.UTF8.GetBytes("null"));
+        Console.WriteLine("TESTA");
+        EarnedAchievementMessage msg = new EarnedAchievementMessage(te.ToArray());
+        msg.Data = new EarnedAchievementPayload() { AchievementID = 473 };
+        Console.WriteLine("TESTA1");
+        OnEarnNewAchievement(msg);
+        AchievementPanel p = UnityEngine.Object.FindObjectOfType<AchievementPanel>();
+        p.HandleShowAchievement((Achievements)473);
+    }
+
     // Info about any new acheivements the client earns during a game
     public static void OnEarnNewAchievement(IncomingHomeMessage message)
     {
         EarnedAchievementMessage m = (EarnedAchievementMessage)message;
+        Console.WriteLine("(TESTA)Attempting achievement: " + m.Data.AchievementID);
         foreach (var achievementInfoList in RoleToAchievements.Values)
         {
             foreach (var achievementInfo in achievementInfoList)
             {
                 if (achievementInfo.Achievement.id == m.Data.AchievementID)
+                {
                     achievementInfo.Earned = true;
+                    Console.WriteLine("(TESTA)Found achievement on list");
+                    break;
+                }
             }
         }
 
@@ -175,27 +201,14 @@ public class AchievementTracker
 
             if (role == controller.trackedRole)
             {
-                List<AchievementInfo> achievements = RoleToAchievements[role].ToList();
-                bool found = false;
-                for (int i = 0; i < 4; i++)
+                List<AchievementInfo> achievements = RoleToAchievements[role].Skip(4).ToList();
+                for (int i = 0; i < achievements.Count; i++)
                 {
-                    if (achievements[i].Achievement.id == m.Data.AchievementID && ShouldShowAchievementChange(m.Data.AchievementID))
+                    if (achievements[i].Achievement.id == m.Data.AchievementID)
                     {
-                        controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
-                        found = true;
+                        controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, ShouldShowAchievementChange(m.Data.AchievementID));
+                        Console.WriteLine("(TESTA)Found achievement on tracker");
                         break;
-                    }
-                }
-                if (!found)
-                {
-                    achievements = AchievementTracker.RoleToAchievements[role].Skip<AchievementInfo>(4).ToList();
-                    for (int i = 0; i < achievements.Count; i++)
-                    {
-                        if (achievements[i].Achievement.id == m.Data.AchievementID && ShouldShowAchievementChange(m.Data.AchievementID))
-                        {
-                            controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
-                            break;
-                        }
                     }
                 }
             }
@@ -293,9 +306,22 @@ public class AchievementTrackerUIController : MonoBehaviour
     TMP_Text AchievementText4;
     public String trackedRole;
 
+
     private void Start()
     {
     }
+
+    /*
+    bool tested = false;
+    void Update() 
+    {
+        if (UnityEngine.Input.GetKey(KeyCode.P) && !tested) 
+        {
+            tested = true;
+            AchievementTracker.TESTA();
+        }
+    }
+    */
 
     public void Init()
     {
@@ -421,17 +447,18 @@ public class AchievementTrackerUIController : MonoBehaviour
     }
 }
 
+//Achievements on popup role cards (like mentions)
 [HarmonyPatch(typeof(RoleCardPopupPanel))]
-public class RoleCardPopupPatch 
+public class RoleCardPopupPatch
 {
     [HarmonyPatch(nameof(RoleCardPopupPanel.Start))]
     [HarmonyPostfix]
-    public static void Postfix(RoleCardPopupPanel __instance) 
+    public static void Postfix(RoleCardPopupPanel __instance)
     {
         if (AchievementTracker.isIncompatibleLobby || !ModSettings.GetBool("See Achievements on Popup"))
             return;
 
-        var go = AchievementTracker.SpawnUI(__instance.gameObject,true);
+        var go = AchievementTracker.SpawnUI(__instance.gameObject, true);
         go.transform.localPosition = new Vector3(-364, -197, -2205);
         var controller = go.GetComponent<AchievementTrackerUIController>();
 
@@ -462,7 +489,7 @@ public class RoleCardPopupPatch
         // if all roles achievements and all win achievement were completed, display all achievements completed message
         if (completed)
         {
-            controller.SetAchievementText("Completed", "All role achievements completed", 3, false);
+            controller.SetAchievementText("Completed", "All role achievements completed", 3, false, true);
             for (int i = 0; i < 3; i++)
             {
                 controller.ShowAchievementText(i, false);
@@ -471,6 +498,8 @@ public class RoleCardPopupPatch
         controller.trackedRole = currentRole;
     }
 }
+
+//Achievements on main role card
 [HarmonyPatch(typeof(RoleCardElementsPanel))]
 public class RoleCardElementsPanelPatch
 {
@@ -486,10 +515,29 @@ public class RoleCardElementsPanelPatch
         var controller = go.GetComponent<AchievementTrackerUIController>();
 
         string currentRole = Pepper.GetMyCurrentIdentity().role.ToString().ToLower();
+
         if (!AchievementTracker.RoleToAchievements.ContainsKey(currentRole))
         {
             UnityEngine.Object.DestroyImmediate(go);
             return;
+        }
+
+        //Move achievements to the side if there is a special power tracker on the rolecard
+        RoleCardObservation roleCardObservation = Service.Game.Sim.info.roleCardObservation;
+        if (roleCardObservation != null && roleCardObservation.observationStatus != ObservationStatus.NONE && roleCardObservation.observationStatus != ObservationStatus.STOPPED && roleCardObservation.Data != null && rolecardpanel.powerLevelMap != null)
+        {
+            RoleCardData powerData = roleCardObservation.Data;
+            if (powerData.powerLevelMax > 0 || powerData.powerLevelMax == -1)
+            {
+                foreach (RoleCardPanel.PowerLevelElementMapObject powerLevelElementMapObject2 in rolecardpanel.powerLevelMap)
+                {
+                    if (powerLevelElementMapObject2.role == Pepper.GetMyCurrentIdentity().role)
+                    {
+                        go.transform.localPosition = new Vector3(-737, go.transform.localPosition.y, go.transform.localPosition.z);
+                        break;
+                    }
+                }
+            }
         }
         // dumb hack but win achievements are always the first 4 i think , and it won't skip pirate hidden achievement , and it will work in other languages (hopefully)
         List<AchievementInfo> achievements = AchievementTracker.RoleToAchievements[currentRole].Skip<AchievementInfo>(4).ToList();
@@ -512,8 +560,8 @@ public class RoleCardElementsPanelPatch
         // if all roles achievements and all win achievement were completed, display all achievements completed message
         if (completed)
         {
-            controller.SetAchievementText("Completed", "All role achievements completed", 0, false);
-            for (int i = 1; i < 4; i++)
+            controller.SetAchievementText("Completed", "All role achievements completed", 3, false, true);
+            for (int i = 0; i < 3; i++)
             {
                 controller.ShowAchievementText(i, false);
             }
@@ -565,20 +613,39 @@ public class RoleCardElementsPanelPatch
                 achievements = AchievementTracker.RoleToAchievements[currentRole].ToList();
                 for (int i = 0; i < 4; i++)
                 {
-                    controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
+                    controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned, true);
                     if (!achievements[i].Earned) completed = false;
                 }
             }
             if (completed)
             {
-                controller.SetAchievementText("Completed", "All role achievements completed", 0, false);
-                for (int i = 1; i < 4; i++)
+                controller.SetAchievementText("Completed", "All role achievements completed", 3, false);
+                controller.ShowAchievementText(3, true);
+                for (int i = 0; i < 3; i++)
                 {
                     controller.ShowAchievementText(i, false);
                 }
             }
 
             controller.trackedRole = currentRole;
+
+            //Move achievements to the side if there is a special power tracker on the rolecard
+            RoleCardObservation roleCardObservation = Service.Game.Sim.info.roleCardObservation;
+            RoleCardData powerData = roleCardObservation.Data;
+            GameObject go = AchievementTracker.achievementTrackerGO;
+            RoleCardPanel rolecardpanel = go.GetComponentInParent<RoleCardPanel>();
+            if (powerData.powerLevelMax > 0 || powerData.powerLevelMax == -1)
+            {
+                Console.WriteLine("(TESTA)List size: " + rolecardpanel.powerLevelMap.Count);
+                foreach (RoleCardPanel.PowerLevelElementMapObject powerLevelElementMapObject2 in rolecardpanel.powerLevelMap)
+                {
+                    if (powerLevelElementMapObject2.role == data.role)
+                    {
+                        go.transform.localPosition = new Vector3(-737, go.transform.localPosition.y, go.transform.localPosition.z);
+                        break;
+                    }
+                }
+            }
         }
     }
 
