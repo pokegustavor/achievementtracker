@@ -76,6 +76,21 @@ public class AchievementTracker
         }
     }
 
+    public ModSettings.CheckboxSetting SeeAchievementsOnPopup
+    {
+        get
+        {
+            return new()
+            {
+                Name = "See Achievements on Popup",
+                Description = "Whether or not to see achievements when seeing role popup (like in mention)",
+                DefaultValue = false,
+                Available = true,
+                AvailableInGame = true,
+            };
+        }
+    }
+
     public ModSettings.CheckboxSetting GUIPositionOverlap
     {
         get
@@ -106,10 +121,10 @@ public class AchievementTracker
         }
     }
 
-    public static GameObject SpawnUI(GameObject parent)
+    public static GameObject SpawnUI(GameObject parent, bool popup = false)
     {
         GameObject achievementTrackerUIGO = UnityEngine.Object.Instantiate(FromAssetBundle.LoadGameObject("achievementtracker.resources.achievementtrackerui", "AchievementTrackerUIGO"));
-        achievementTrackerGO = achievementTrackerUIGO;
+        if(!popup)achievementTrackerGO = achievementTrackerUIGO;
         achievementTrackerUIGO.transform.SetParent(parent.transform, false);
         achievementTrackerUIGO.transform.SetLocalPositionAndRotation(localPosition, Quaternion.identity);
         achievementTrackerUIGO.transform.localScale = new Vector3(3.5f, 3.5f, 3.5f);
@@ -171,7 +186,7 @@ public class AchievementTracker
                         break;
                     }
                 }
-                if (!found) 
+                if (!found)
                 {
                     achievements = AchievementTracker.RoleToAchievements[role].Skip<AchievementInfo>(4).ToList();
                     for (int i = 0; i < achievements.Count; i++)
@@ -209,8 +224,19 @@ public class AchievementServicePatch
             if (role.Contains("rolecard_"))
                 role = role.Substring("rolecard_".Length);
 
+            if (role == "cursedsoul")
+            {
+                role = "cursed_soul";
+            }
+            else if (role == "catalyst_overcharge")
+            {
+                role = "catalyst";
+            }
             if (!AchievementTracker.RoleToAchievements.ContainsKey(role))
+            {
                 AchievementTracker.RoleToAchievements[role] = new List<AchievementInfo>();
+                //Console.WriteLine("(TESTA)Added new role: " + role);
+            }
 
             var info = new AchievementInfo
             {
@@ -313,7 +339,7 @@ public class AchievementTrackerUIController : MonoBehaviour
         text.fontSharedMaterial = material;
     }
 
-    public void SetAchievementText(string title, string desc, int index, bool earned)
+    public void SetAchievementText(string title, string desc, int index, bool earned, bool victory = false)
     {
         Color color = Color.white;
         if (earned)
@@ -336,7 +362,7 @@ public class AchievementTrackerUIController : MonoBehaviour
                 break;
             case 3:
                 bool should_become_active = ModSettings.GetBool("See Hidden Achievements");
-                quickSetAchievementData(ref AchievementTitle4, ref AchievementText4, title, desc, color, should_become_active);
+                quickSetAchievementData(ref AchievementTitle4, ref AchievementText4, title, desc, color, should_become_active || victory);
                 break;
             default:
                 throw new Exception("Unexpected value");
@@ -395,6 +421,56 @@ public class AchievementTrackerUIController : MonoBehaviour
     }
 }
 
+[HarmonyPatch(typeof(RoleCardPopupPanel))]
+public class RoleCardPopupPatch 
+{
+    [HarmonyPatch(nameof(RoleCardPopupPanel.Start))]
+    [HarmonyPostfix]
+    public static void Postfix(RoleCardPopupPanel __instance) 
+    {
+        if (AchievementTracker.isIncompatibleLobby || !ModSettings.GetBool("See Achievements on Popup"))
+            return;
+
+        var go = AchievementTracker.SpawnUI(__instance.gameObject,true);
+        go.transform.localPosition = new Vector3(-364, -197, -2205);
+        var controller = go.GetComponent<AchievementTrackerUIController>();
+
+        string currentRole = __instance.CurrentRole.ToString().ToLower();
+        if (!AchievementTracker.RoleToAchievements.ContainsKey(currentRole))
+        {
+            UnityEngine.Object.DestroyImmediate(go);
+            return;
+        }
+        // dumb hack but win achievements are always the first 4 i think , and it won't skip pirate hidden achievement , and it will work in other languages (hopefully)
+        List<AchievementInfo> achievements = AchievementTracker.RoleToAchievements[currentRole].Skip<AchievementInfo>(4).ToList();
+        var completed = true;
+        for (int i = 0; i < achievements.Count; i++)
+        {
+            controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
+            if (!achievements[i].Earned) completed = false;
+        }
+        // if all role related achivement were completed, display the victory achivements missing
+        if (completed)
+        {
+            achievements = AchievementTracker.RoleToAchievements[currentRole].ToList();
+            for (int i = 0; i < 4; i++)
+            {
+                controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned, true);
+                if (!achievements[i].Earned) completed = false;
+            }
+        }
+        // if all roles achievements and all win achievement were completed, display all achievements completed message
+        if (completed)
+        {
+            controller.SetAchievementText("Completed", "All role achievements completed", 3, false);
+            for (int i = 0; i < 3; i++)
+            {
+                controller.ShowAchievementText(i, false);
+            }
+        }
+        controller.trackedRole = currentRole;
+    }
+}
 [HarmonyPatch(typeof(RoleCardElementsPanel))]
 public class RoleCardElementsPanelPatch
 {
@@ -410,6 +486,11 @@ public class RoleCardElementsPanelPatch
         var controller = go.GetComponent<AchievementTrackerUIController>();
 
         string currentRole = Pepper.GetMyCurrentIdentity().role.ToString().ToLower();
+        if (!AchievementTracker.RoleToAchievements.ContainsKey(currentRole))
+        {
+            UnityEngine.Object.DestroyImmediate(go);
+            return;
+        }
         // dumb hack but win achievements are always the first 4 i think , and it won't skip pirate hidden achievement , and it will work in other languages (hopefully)
         List<AchievementInfo> achievements = AchievementTracker.RoleToAchievements[currentRole].Skip<AchievementInfo>(4).ToList();
         var completed = true;
@@ -424,7 +505,7 @@ public class RoleCardElementsPanelPatch
             achievements = AchievementTracker.RoleToAchievements[currentRole].ToList();
             for (int i = 0; i < 4; i++)
             {
-                controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned);
+                controller.SetAchievementText(achievements[i].Name, achievements[i].Description, i, achievements[i].Earned, true);
                 if (!achievements[i].Earned) completed = false;
             }
         }
@@ -501,7 +582,7 @@ public class RoleCardElementsPanelPatch
         }
     }
 
-    public static bool IsHorseman(string role) 
+    public static bool IsHorseman(string role)
     {
         return role == "war" || role == "famine" || role == "death" || role == "pestilence";
     }
